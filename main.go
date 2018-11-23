@@ -1,15 +1,25 @@
 package main
 
 import (
-	"fmt"
 	"net/http"
+	"github.com/sirupsen/logrus"
+	"os"
 )
 
+var log = logrus.New()
+
 func main() {
-	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		fmt.Println("Received request for URL: " + r.URL.String())
-		w.WriteHeader(200)
-		w.Write([]byte("Hello World"))
-	})
-	http.ListenAndServe(":8080", nil)
+	port := os.Getenv("SERVICE_PORT")
+	if len(port) == 0 {
+		log.Fatal("required parameter service port is not set")
+	}
+	//port := flag.String("port", "8080", "a port")
+	//flag.Parse()
+	kubeService := NewService()
+	http.HandleFunc("/state", kubeService.CheckState)
+	http.HandleFunc("/health", kubeService.CheckHealth)
+	if err := http.ListenAndServe(":"+port, nil); err != nil {
+		log.Error(err)
+		panic(err)
+	}
 }
